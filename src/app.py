@@ -208,6 +208,9 @@ class PlateRecognizer:
         self.lock = threading.Lock()
         self.state_plates = {}
 
+        self.bbox = [0, 0, 0, 0]
+        self.text = ""
+
     def run(self):
         thread_in = threading.Thread(target=self.camera_in)
         thread_out = threading.Thread(target=self.camera_out)
@@ -224,10 +227,23 @@ class PlateRecognizer:
 
     def _process_camera(self, cap, camera_name, model):
         log.info(f"Memulai pemrosesan video {camera_name}...")
+
+        fps = 0
+        frame_count = 0
+        start_time = time.time()
+
         while cap.isOpened():
             success, frame = cap.read()
 
             if success:
+
+                frame_count += 1
+                if frame_count >= 10:
+                    end_time = time.time()
+                    fps = frame_count / (end_time - start_time)
+                    frame_count = 0
+                    start_time = time.time()
+
                 resized_frame = cv2.resize(
                     frame, (self.new_width, self.new_height))
                 try:
@@ -244,20 +260,29 @@ class PlateRecognizer:
                 for r in results:
                     boxes = r.boxes
                     for box in boxes:
-                        b = box.xyxy[0].tolist()
-                        text = self.extract_text(resized_frame, b)
-                        log.info(f"Detected text: {text}")
+                        self.bbox = box.xyxy[0].tolist()
+                        self.text = self.extract_text(resized_frame, self.bbox)
+                        log.info(f"Detected text: {self.text}")
 
                         if camera_name == 'Camera in':
-                            self.handle_camera_in(text, current_time)
+                            self.handle_camera_in(self.text, current_time)
                         else:
-                            self.handle_camera_out(text, current_time)
+                            self.handle_camera_out(self.text, current_time)
 
                 try:
                     annotated_frame = results[0].plot()
                     if len(annotated_frame.shape) == 3 and annotated_frame.shape[2] == 3:
                         annotated_frame = cv2.cvtColor(
                             annotated_frame, cv2.COLOR_RGB2BGR)
+
+                    cv2.putText(
+                        annotated_frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+                    # # Draw text below the bounding box
+                    # x1, y1, x2, y2 = map(int, self.bbox)
+                    # cv2.putText(annotated_frame, self.text, (x1, y2 + 20),
+                    #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
                     cv2.imshow(
                         f"YOLOv8 Inference {camera_name}", annotated_frame)
                 except Exception as e:
