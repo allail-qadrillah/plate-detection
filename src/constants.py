@@ -1,0 +1,1 @@
+DETECTION_TIME = 1 # seconds

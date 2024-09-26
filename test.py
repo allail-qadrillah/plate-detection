@@ -1,0 +1,453 @@
+from easyocr import Reader
+import cv2
+import os
+import re
+
+reader = Reader(['en'])
+
+def process_plate_text( text):
+    lines = text.split('\n')
+    processed_plates = []
+    for line in lines:
+        clean_line = re.sub(r'[^a-zA-Z0-9]', ' ', line)
+        parts = clean_line.split()
+
+        if len(parts) >= 3:
+            part1 = ''.join(filter(str.isalpha, parts[0]))[:2].upper()
+            part2 = ''.join(filter(str.isdigit, ''.join(parts[1:-1])))[:4]
+            part3 = ''.join(filter(str.isalpha, parts[-1]))[:2].upper()
+
+            if not part3:
+                for part in parts[2:-1]:
+                    part3 = ''.join(filter(str.isalpha, part))[:2].upper()
+                    if part3:
+                        break
+
+            if part1 and part2 and part3:
+                processed_plate = f"{part1} {part2} {part3}"
+                processed_plates.append(processed_plate)
+
+    return '\n'.join(processed_plates)
+
+
+def extract_text(path_image):
+    frame = cv2.imread(path_image)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    results = reader.readtext(gray)
+    text = [content for (_, content, _) in results]
+    full_text = ' '.join(text)
+    processed_plates = process_plate_text(full_text)
+
+    return processed_plates
+
+# dir = "./test-image/test"
+dir = "./test-image/train"
+
+for file in os.listdir(dir):
+    print(file + " : " + extract_text(os.path.join(dir, file)))
+
+
+"""
+TEST
+351.E 6730 RC-07-19.jpeg : E 6730 RC
+352.E 5053 RG-09-20.jpeg : E 5053 RG
+353.E 6270 SM-06-20.jpeg : E 6270 SV
+354.E 6250 PAJ-02-22.jpeg : F 6250 PA
+355.E 6547 PAF-09-21.jpeg : 
+356.E 6225 SJ-11-19.jpeg : E 6225 SJ
+357.E 4679 PAD-06-21.jpg : IE 6790 PA
+358.E 3438 SJ-10-19.jpg : 
+359.E 6270 OZ-01-21.jpg : IE 6270 Z
+360.E 4690 PAL-04-22.jpg : E 7690 L
+361.E 3193 PS-08-17.jpeg : E 3193 PS
+362.E 6525 SF-09-21.jpeg : E 6525 SF
+363.E 6263 RU-07-20.jpg : 
+364.E 6528 P-11-18.jpeg : 
+
+TRAIN
+1.E 3977 QM-09-19.jpeg : 
+10.E 5894 SZ-09-17.jpg : 
+100.E 6467 QW-09-20.jpeg : 
+101.E 4604 PS-09-17.jpeg : E 7604 PS
+102.E 6984 P-07-20.jpeg : 
+103.E 6387 PL-04-20.jpeg : E 6387 PL
+104.E 4939 PAE-07-21.jpeg : 
+105.E 6430 QO-12-19.jpeg : 
+106.E 4670 TL-05-22.jpeg : E 4670 TL
+107.E 4145 QZ-12-20.jpeg : 
+108.E 5860 ST-03-21.jpeg : 
+109.E 4026 SL-02-20.jpg : E 0260 SL
+11.E 6562 QO-12-19.jpeg : 
+110.E 4753 QV-08-20.jpeg : TE 4753 QV
+111.E 6810 IX-05-20.jpg : E 6870 TX
+112.E 5718 OT-06-20.jpg : IE 5718 OT
+113.E 2283 RG-10-10.jpg : 
+114.E 3536 O-06-10.jpg : 
+115.E 5305 SM-06-20.jpeg : 
+116.E 5241 TP-09-22.jpeg : IE 5241 TP
+117.E 2251 TI-01-22.jpg : E 2251 TI
+118.E 4885 QZ-12-20.jpeg : IE 4885 Z
+119.E 4538 QK-08-19.jpeg : E 4538 QK
+12.E 2462 QF-02-19.jpeg : E 2462 QF
+120.E 6464 TI-05-18.jpg : 
+121.E 4112 RJ-04-18.jpeg : E 4112 RJ
+122.E 3206 PAO-06-22.jpeg : E 3206 PA
+123.E 4603 PAE-07-21.jpeg : IE 4603 PA
+124.E 4564 RRR-11-21.jpg : E 564 RR
+125.E 4172 QB-11-22.jpeg : IE 4172 OB
+126.E 3453 TN-06-22.jpeg : IE 3453 TH
+127.E 6932 TW-05-18.jpg : E 6932 TW
+128.E 4877 SV-05-21.jpg : 
+129.E 6410 TX-06-18.jpeg : 
+13.E 5313 TF-10-16.jpeg : E 5313 I
+130.E 9967 P-12-22.jpg : IE 9967 PL
+131.E 5789 QD-12-18.jpg : E 5789 QD
+132.E 6298 SS-01-21.jpg : E 6298 SS
+133.E 6586 PAM-06-22.jpeg : E 6586 PA
+134.E 2194 Q-07-18.jpeg : 
+135.E 4721 SJ-11-20.jpeg : IE 7211 SJ
+136.E 3916 P-05-21.jpg : E 3916 P
+137.E 4958 QS-05-20.jpg : IE 4958 S
+138.E 4746 PAI-12-21.jpg : 
+139.E 5515 QG-04-19.jpg : E 5515 C
+14.E 1129 RP-07-18.jpg : E 1129 RP
+140.E 5997 QP-01-20.jpeg : 
+141.E 3860 PAK-02-22.jpeg : E 3860 PA
+142.E 3229 SQ-11-18.jpeg : 
+143.E 5279 SD-12-21.jpg : 
+144.E 3063 RS-07-22.jpeg : E 3063 RS
+145.E 2035 SO-07-20.jpeg : E 2035 S
+146.E 3485 SZ-09-10.jpeg : 
+147.E 2881 QAA-10-22.jpg : FE 2881 QA
+148.E 3052 QU-06-20.jpg : E 3052 QU
+149.E 4217 TT-01-18.jpeg : E 2217 TT
+15.E 3088 PAK-02-22.jpg : E 3088 PI
+150.E 6686 PAI-01-22.jpg : HO 6686 A
+151.E 5090 TW-05-18.jpg : E 5090 TM
+152.E 3772 SV-05-16.jpeg : E 3772 SV
+153.E 6930 RS-09-12.jpeg : 
+154.E 6151 PAL-04-22.jpg : 
+155.E 3392 TZ-07-18.jpeg : E 3392 TZ
+156.E 3426 SB-10-18.jpg : 
+157.E 6735 QV-08-20.jpeg : LE 6735 QV
+158.E 5737 PAB-03-21.jpeg : LE 5737 PU
+159.E 5084 RY-08-21.jpg : 
+16.E 3598 PAD-09-21.jpg : 
+160.E 2707 SP-11-21.jpeg : 
+161.E 3332 ST-02-19.jpeg : E 3332 ST
+162.E 4539 RC-11-20.jpg : 
+163.E 6804 RV-02-19.jpeg : I 6804 RV
+164.E 3543 PAG-09-21.jpg : 
+165.E 5555 SR-05-20.jpg : 
+166.E 2989 OZ-12-20.jpg : 
+167.E 4314 RP-01-22.jpeg : 
+168.E 4092 PAE-07-21.jpeg : E 4092 PA
+169.E 2637 WM-02-21.jpg : IE 2637 HM
+17.E 4172 QC-11-18.jpg : E 4172 UP
+170.E 3913 QS-04-20.jpeg : E 3913 OS
+171.E 5605 QZ-12-20.jpeg : IE 5605 Z
+172.E 6526 QX-11-20.jpg : E 6526 QX
+173.E 4019 TL-05-22.jpg : 
+174.E 2091 SD-01-14.jpeg : E 0 KI
+175.E 6962 PAA-02-21.jpeg : IE 6962 PA
+176.E 4386 IY-09-18.jpeg : 
+177.E 2380 SA-09-18.jpg : 
+178.E 5430 SL-02-20.jpg : 
+179.E 3934 PAI-12-21.jpg : 
+18.E 3865 PAF-08-21.jpeg : F 3865 PA
+180.E 3646 RL-05-20.jpeg : E 3646 RL
+181.E 3708 TU-06-15.jpeg : 
+182.E 3996 RS-08-17.jpeg : 
+183.E 5266 TS-12-22.jpg : IE 5266 TS
+184.E 6595 TO-10-22.jpeg : E 8595 TO
+185.E 6017 SR-03-13.jpg : 
+186.E 6173 IM-11-18.jpeg : E 6173 IM
+187.E 6737 SS-01-21.jpeg : E 6737 SS
+188.E 2647 SL-01-20.jpeg : E 2627 SL
+189.E 5182 QO-11-19.jpg : 
+19.E 6179 SH-09-14.jpeg : 
+190.E 5621 OV-08-20.jpg : IE 1 EA
+191.E 3690 ZV-02-20.jpg : E 3690 ZV
+192.E 6347 PAF-09-21.jpg : E 6347 PA
+193.E 4682 QA-09-22.jpg : IE 6824 O
+194.E 6037 SF-06-19.jpeg : E 6037 SF
+195.E 2110 QP-12-19.jpeg : E 2110 OP
+196.E 6843 SV-06-21.jpeg : 
+197.E 6375 OC-06-22.jpg : E 6375 OC
+198.E 3040 SI-09-19.jpeg : E 3020 SI
+199.E 5314 QR-03-20.jpeg : IE 5314 OR
+2.E 6223 PAC-05-21.jpeg : 
+20.E 4221 RL-04-19.jpg : E 4221 RL
+200.E 6978 OW-09-20.jpg : 
+201.E 5090 PAO-07-22.jpg : 
+20171210_212912.jpg : E 6500 A
+20171211_084300.jpg : E 3220 PA
+20171211_110634.jpg : E 8890 E
+20171211_110642.jpg : E 6758 Z
+20171211_110651.jpg : 
+20171211_110659.jpg : E 3060 CC
+20171211_110711.jpg : 
+20171211_122519.jpg : 
+20171211_132834.jpg : LL 2756 E
+20171211_154917.jpg : E 2337 PA
+20171211_154939.jpg : E 2303 Q
+20171211_155025.jpg : A 4075 T
+20171211_160434.jpg : E 5197 PA
+20171211_160452.jpg : E 0580 L
+20171212_073402.jpg : E 2830 V
+20171212_073415.jpg : 
+20171212_073435.jpg : 
+20171212_073548.jpg : 
+20171212_100546.jpg : E 6260 Z
+20171212_100559.jpg : 
+20171212_100708.jpg : E 2345 PC
+20171212_124349.jpg : E 5197 RW
+20171212_124357.jpg : LI 4273 E
+20171212_124415.jpg : E 6000 CN
+20171212_124449.jpg : E 2491 U
+20171212_141155.jpg : E 6274 E
+20171212_141203.jpg : E 5668 QY
+20171212_142228.jpg : 
+20171212_142243.jpg : E 8210 SS
+20171212_142336.jpg : 
+20171212_142342.jpg : E 3061 OH
+20171214_091545.jpg : E 3060 EC
+20171214_121617.jpg : E 6141 QE
+20171214_121636.jpg : 
+20171214_121655.jpg : 
+202.E 2965 TO-07-22.jpeg : E 2965 TU
+203.E 3071 TC-10-21.jpg : E 3071 TO
+204.E 6936 TF-10-21.jpg : 
+205.E 5880 RF-10-18.jpeg : E 5880 RF
+206.E 2253 RB-01-21.jpg : E 2253 RB
+207.E 4396 RU-12-17.jpeg : E 3967 RU
+208.E 6855 OC-11-21.jpeg : JE 6855 OC
+209.E 5246 PAF-08-21.jpeg : E 5246 PA
+210.E 3166 PAO-06-22.jpeg : IE 3766 PA
+211.E 3313 QX-10-20.jpeg : E 3313 X
+212.E 3817 PAH-11-21.jpeg : 
+213.E 4732 TX-05-18.jpeg : E 4732 TX
+214.E 2086 RI-01-21.jpeg : IE 2860 RI
+215.E 6608 PAF-09-21.jpeg : IE 6608 PA
+216.E 4406 PAG-09-21.jpeg : E 4406 PA
+217.E 4992 SW-06-15.jpg : K 9920 SV
+218.E 2715 SE-04-19.jpeg : E 2715 SE
+219.E 6312 SW-07-21.jpeg : 
+22.E 5234 YF-11-20.jpeg : E 523 YF
+220.E 3246 OP-12-19.jpg : 
+221.E 3683 RN-10-21.jpg : 
+222.E 4578 TL-15-22.jpeg : E 6578 TL
+223.E 6186 PAP-08-22.jpeg : E 6186 PA
+224.E 5085 SD-03-19.jpg : E 5085 SD
+225.E 3061 SQ-10-20.jpg : E 3061 SU
+226.E 5148 OI-06-13.jpg : 
+227.E 2075 OD-11-18.jpg : 
+228.E 6450 TM-06-22.jpeg : LE 5250 TM
+229.E 4951 QE-02-19.jpg : E 2951 QE
+23.E 2694 SI-09-19.jpg : 
+230.E 3203 TR-11-17.jpg : E 3203 TR
+231.E 5639 PAP-08-22.jpg : E 5639 PA
+232.E 6140 QO-12-19.jpg : 
+233.E 3407 PAB-03-21.jpg : E 3407 PA
+234.E 3904 P-03-16.jpg : 
+235.E 1893 PQ-01-19.jpg : E 4189 PQ
+236.E 536 YY-00-00.jpg : E 5365 ZO
+237.E 3243 QN-12-17.jpeg : E 3243 ON
+238.E 5241 TR-11-22.jpg : 
+239.E 6326 TQ-04-19.jpg : 
+24.E 6520 PAC-05-21.jpeg : E 6520 PA
+240.E 9999 AA-02-19.jpeg : 
+241.E 4510 PL-03-20.jpeg : E 5100 PL
+242.E 6733 TN-07-20.jpeg : 
+243.E 3309 QF-02-19.jpeg : E 3309 OF
+244.E 6590 QW-09-20.jpeg : E 6590 OW
+245.E 6941 PAP-08-22.jpeg : E 6941 PA
+246.E 5905 QO-12-19.jpeg : E 5905 HO
+247.E 2148 RI-01-16.jpg : 
+248.E 4212 SS-01-21.jpeg : E 4212 SS
+249.E 3507 TS-12-17.jpeg : 
+25.E 2101 PAD-06-21.jpeg : IE 2101 PA
+250.E 6031 ST-03-21.jpeg : IE 6031 ST
+251.E 3008 SM-05-20.jpeg : IE 3008 SM
+252.E 2113 PAG-09-21.jpeg : E 2113 PA
+253.E 2212 TZ-07-18.jpeg : 
+254.E 4739 TA-01-14.jpeg : 
+255.E 6527 OD-02-20.jpeg : 
+256.E 4572 SS-01-16.jpeg : E 4572 SS
+257.E 4553 QT-06-20.jpg : E 5530 QT
+258.E 2895 NB-10-13.jpg : 
+259.E 3154 QO-11-19.jpeg : 
+26.E 4016 TO-08-22.jpeg : IE 4016 T
+260.E 4250 SU-04-21.jpeg : E 8250 SU
+261.E 4991 TP-09-17.jpg : 
+262.E 3465 SL-02-20.jpg : 
+263.E 6631 TO-08-21.jpg : 
+264.E 2458 SV-05-16.jpeg : IE 2458 SV
+265.E 3984 TZ-07-21.jpg : 
+266.E 4299 SZ-09-21.jpeg : E 4299 SZ
+267.E 2747 TS-12-17.jpg : 
+268.E 6752 SN-04-18.jpeg : EE 6752 SN
+269.E 2101 TJ-02-22.jpg : E 2101 TJ
+27.E 3524 PAG-09-21.jpeg : E 3524 PA
+270.E 2891 TT-01-18.jpg : 
+271.E 2381 PAH-10-21.jpeg : IE 2381 PA
+272.E 1677 PE-02-21.jpeg : E 1677 PE
+273.E 6078 RM-09-22.jpeg : E 6078 RM
+274.E 4558 SH-08-18.jpeg : E 5580 SH
+275.E 4986 SO-10-20.jpg : E 9060 S
+276.E 2810 PAD-05-21.jpeg : E 2810 PA
+277.E 6802 PAH-11-21.jpg : 
+278.E 4568 TCK-12-17.jpeg : IE 4568 TC
+279.E 3405 S-11-20.jpg : E 3405 S
+28.E 2393 TT-01-18.jpeg : E 2390 TI
+280.E 4813 PL-04-20.jpeg : E 4813 PL
+281.E 5503 TI-02-20.jpeg : E 502 TI
+282.E 5519 PAK-03-22.jpg : E 5519 PA
+283.E 2870 QAA-10-22.jpeg : LE 2870 QA
+284.E 5676 TD-02-18.jpg : E 5676 TO
+285.E 5515 QT-06-20.jpeg : E 5515 QT
+286.E 5817 PT-04-18.jpeg : 
+287.E 6272 PAJ-02-22.jpeg : EE 6272 PA
+288.E 2747 QQ-01-20.jpeg : 
+289.E 6810 TX-06-18.jpeg : E 6810 TX
+29.E 3978 SC-12-21.jpeg : E 0910 KC
+290.E 2157 PAO-06-22.jpeg : E 2157 PA
+291.E 3496 RW-04-19.jpeg : E 3496 OR
+292.E 4890 QE-01-19.jpeg : EE 8905 R
+293.E 2509 OW-09-20.jpg : 
+294.E 2381 QAA-10-22.jpeg : 
+295.E 6919 TM-06-17.jpg : E 6919 TM
+296.E 5098 RA-00-00.jpg : 
+297.E 1169 PY-05-20.jpg : F 69 PY
+298.E 5944 TK-04-22.jpeg : E 5902 TK
+299.E 5051 SD-03-18.jpeg : 
+3.E 4537 TCK-12-17.jpg : 
+30.E 5032 QD-12-18.jpeg : 
+300.E 5105 OD-12-21.jpg : EE 5105 OD
+301.E 6893 PAD-06-21.jpeg : 
+302.E 3922 OI-05-19.jpg : 
+303.E 6888 SC-11-21.jpg : IE 6888 SC
+304.E 5381 PAB-03-21.jpeg : E 5381 PA
+305.E 4964 SN-07-20.jpeg : 
+306.E 3270 SJ-08-22.jpeg : 
+307.E 4238 QC-11-18.jpeg : E 4238 OC
+308.E 5024 SO-09-20.jpg : 
+309.E 6140 OX-11-20.jpg : G 6120 OX
+31.E 5235 RO-11-16.jpg : E 5235 RO
+310.E 6193 QF-02-10.jpeg : 
+311.E 3593 TF-10-19.jpg : IE 3593 TF
+312.E 3212 OL-08-19.jpg : E 3212 OL
+313.E 5971 TO-08-22.jpg : E 5971 T
+314.E 3016 SB-10-18.jpeg : E 3016 SE
+315.E 6091 TV-04-18.jpg : E 6091 TV
+316.E 4895 OL-09-19.jpeg : L 8950 L
+317.E 5064 SE-05-19.jpeg : E 5064 SE
+318.E 5827 QT-06-20.jpg : 
+319.E 3547 RR-06-12.jpg : E 354 D
+32.E 3932 SL-02-15.jpeg : E 3932 SL
+320.E 3796 PY-05-20.jpg : 
+321.E 3255 TN-12-20.jpg : E 5255 TH
+322.E 8767 TG-11-22.jpg : 
+323.E 4886 TM-06-22.jpeg : E 8860 TM
+324.E 5854 PAP-08-22.jpeg : IE 5854 PA
+325.E 2634 QG-03-19.jpeg : E 2634 RC
+326.E 3758 RW-04-18.jpeg : E 3758 RE
+327.E 5071 SS-01-21.jpg : E 5078 SS
+328.E 1992 RN-04-22.jpeg : 
+329.E 5078 QF-02-19.jpeg : 
+33.E 5216 TI-11-21.jpeg : E 5216 TI
+330.E 5869 PAA-02-21.jpg : E 5869 PA
+331.E 2843 HB-08-21.jpeg : E 2843 HB
+332.E 4876 Q-08-18.jpg : 
+333.E 2247 RY-05-18.jpeg : E 2247 RY
+334.E 5195 PL-04-20.jpeg : E 5195 PL
+335.E 3405 PAH-10-21.jpeg : E 3405 PA
+336.E 2909 TP-12-21.jpeg : IE 3909 TP
+337.E 3955 PAK-02-22.jpeg : IE 3955 PA
+338.E 3851 PAI-12-21.jpeg : 
+339.E 4966 SN-07-20.jpg : 
+34.E 2987 QC-10-18.jpeg : E 2987 OC
+340.E 4235 RP-01-22.jpeg : E 4235 RP
+341.E 6047 QT-07-20.jpg : E 6047 U
+342.E 2544 QD-11-18.jpeg : E 2544 QD
+343.E 6894 SB-11-19.jpeg : IE 6894 SB
+344.E 6393 TZ-07-18.jpeg : 
+345.E 2047 SF-05-19.jpeg : E 2040 SF
+346.E 6511 QV-09-20.jpg : IE 6511 QV
+347.E 6765 PAD-06-21.jpeg : E 6756 PA
+348.E 4160TQ-10-17.jpeg : E 1416 TO
+349.E 4378 SG-07-19.jpeg : EL 2378 SG
+35.E 5026 SF-06-18.jpeg : E 5026 SF
+350.E 3577 PAI-12-21.jpg : E 02 TD
+36.E 4092 TJ-03-18.jpeg : 
+37.E 4127 QI-05-19.jpg : 
+38.E 3747 RE-08-15.jpeg : 
+39.E 6716 QR-04-20.jpeg : E 6716 QR
+4.E 6226 YZ-12-19.jpg : 
+40.E 2324 OM-09-19.jpg : F 2320 QM
+41.E 2648 QI-05-19.jpg : 
+42.E 3690 SE-09-21.jpg : 
+43.E 5736 PAQ-09-22.jpeg : 
+44.E 5197 PAA-02-21.jpg : E 5197 PA
+45.E 4836 QM-10-19.jpeg : E 8361 QM
+46.E 4531 TV-04-18.jpeg : E 5310 TV
+47.E 4240 RY-06-19.jpeg : E 4240 RY
+48.E 6073 OL-09-19.jpg : 
+49.E 5441 SA-11-19.jpeg : E 5441 SA
+5.E 6862 QT-06-20.jpg : E 6862 T
+50.E 6691 PAB-04-21.jpg : E 6691 PA
+51.E 3083 PAH-10-21.jpeg : 
+52.E 3765 QO-12-19.jpg : 
+53.E 3288 QU-06-20.jpg : E 3288 QU
+54.E 5627 SF-06-19.jpg : 
+55.E 6214 PAO-09-22.jpg : E 6214 PA
+56.E 5056 QD-12-18.jpeg : E 12 EE
+57.E 5893 SH-05-20.jpg : E 5893 SH
+58.E 5158 TP-09-17.jpg : E 5158 TP
+59.E 2153 SP-08-20.jpeg : E 2153 SP
+6.E 3237 QY-11-20.jpeg : IE 3237 Y
+60.E 1707 PH-03-15.jpeg : 
+61.E 6472 SB-11-18.jpeg : 
+62.E 3977 TH-12-18.jpg : 
+63.E 2536 SA-09-18.jpg : 
+64.E 5561 OI-06-19.jpg : 
+65.E 4235 PAL-04-22.jpeg : IE 2350 PA
+66.E 1477 RB-02-21.jpg : E 1477 RB
+67.E 4387 SK-11-21.jpeg : E 4387 SK
+68.E 1267 RB-01-21.jpg : E 1267 RB
+69.E 5792 TT-01-22.jpg : 
+7.E 4594 Q-08-18.jpeg : 
+70.E 4310 OR-03-20.jpeg : 
+71.E 2478 QK-07-19.jpeg : JE 2478 QK
+72.E 4903 TR-11-22.jpg : 
+73.E 5043 PAL-04-22.jpeg : E 5043 PA
+74.E 2393 TT-01-18.jpg : 
+75.E 2956 RP-03-22.jpeg : 
+76.E 5361 TI-01-18.jpg : 
+77.E 6295 QL-09-19.jpeg : 
+78.E 1245 RG-02-20.jpg : 
+79.E 4564 SZ-09-21.jpeg : E 4564 S
+8.E 3396 TO-08-22.jpeg : 
+80.E 5142 TW-05-18.jpeg : E 6142 SE
+81.E 3115 SN-06-20.jpg : 
+82.E 4993 TI-01-22.jpg : VE 4993 TI
+83.E 4147 QJ-06-19.jpeg : E 4141 QU
+84.E 6545 SN-06-21.jpeg : E 8545 SH
+85.E 2686 QH-04-19.jpeg : E 6860 QH
+86.E 5202 TA-03-19.jpg : E 5202 TA
+87.E 6673 ZQ-04-18.jpg : E 6673 Z
+88.E 3118 QP-01-20.jpeg : E 3118 QP
+89.E 6099 QS-05-20.jpeg : 
+9.E 2633 RO-11-16.jpg : E 2633 RO
+90.E 5811 RO-10-18.jpeg : EE 5811 RO
+91.E 6554 ZL-05-22.jpg : E 6554 ZL
+92.E 3912 P-05-21.jpg : E 3912 P
+93.E 5277 PW-09-18.jpg : E 5277 PW
+94.E 2118 ST-01-21.jpeg : E 2118 ST
+95.E 6686 SK-01-20.jpeg : IE 5686 SK
+96.E 5942 TM-06-17.jpeg : E 5942 TM
+97.E 6457 CA-11-21.jpg : E 6457 CA
+98.E 2521 RQ-04-19.jpg : 
+99.E 2984 TW-04-18.jpg : 
+"""
