@@ -1,161 +1,6 @@
-# from .constants import DETECTION_TIME
+from .servo import Servo
 
-# from collections import defaultdict
-# from ultralytics import YOLO
-# from easyocr import Reader
-# import logging
-# import time
-# import cv2
-# import re
-
-# logging.basicConfig(level=logging.INFO)
-# log = logging.getLogger(__name__)
-# reader = Reader(['en'])
-
-# video_path = "./videos/full-masuk-keluar.mp4"
-# # video_path = "./videos/keluar.mp4"
-
-# class PlateRecognizer:
-
-#     def __init__(self, model_path: str = "./model/best.pt"):
-#         self.model = YOLO(model_path)
-#         self.cap = cv2.VideoCapture(video_path)
-
-#         # Get the video properties
-#         frame_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-#         frame_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-#         # Define the desired width for resizing
-#         desired_width = 720
-
-#         # Calculate the scaling factor and new dimensions
-#         scale = desired_width / frame_width
-#         self.new_width = int(frame_width * scale)
-#         self.new_height = int(frame_height * scale)
-
-#         # Dictionary to store detection times for each bbox
-#         self.detection_times = defaultdict(float)
-
-#     def run(self):
-#         camera_in = self.camera()
-#         camera_out = self.camera()
-
-#     def camera(self):
-
-#         log.info("Starting video processing...")
-#         while self.cap.isOpened():
-#             # Read a frame from the video
-#             success, frame = self.cap.read()
-
-#             if success:
-#                 # Resize the frame
-#                 resized_frame = cv2.resize(frame, (self.new_width, self.new_height))
-
-#                 # Run YOLOv8 inference on the resized frame
-#                 results = self.model(resized_frame, verbose=False)
-
-#                 current_time = time.time()
-
-#                 for r in results:
-#                     boxes = r.boxes
-#                     for box in boxes:
-#                         b = box.xyxy[0].tolist()
-
-#                         text = self.extract_text(resized_frame, b)
-
-#                         log.info(f"Detected text: {text}")
-
-#                 # Visualize the results on the resized frame
-#                 annotated_frame = results[0].plot()
-
-#                 # Ensure the frame is in the correct format for OpenCV
-#                 if len(annotated_frame.shape) == 3 and annotated_frame.shape[2] == 3:
-#                     annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_RGB2BGR)
-
-#                 # Display the annotated frame
-#                 try:
-#                     cv2.imshow("YOLOv8 Inference", annotated_frame)
-#                 except cv2.error as e:
-#                     log.error(f"Error displaying frame: {e}")
-#                     log.error("Continuing processing without display...")
-
-#                 # Break the loop if 'q' is pressed
-#                 if cv2.waitKey(1) & 0xFF == ord("q"):
-#                     log.info("Video processing stopped by user.")
-#                     break
-#             else:
-#                 # Break the loop if the end of the video is reached
-#                 break
-
-#         # Release the video capture object and close the display window
-#         self.cap.release()
-#         cv2.destroyAllWindows()
-
-#         log.info("Video processing complete.")
-
-#     def extract_text(self, frame, bbox):
-
-#         x1, y1, x2, y2 = map(int, bbox)
-#         roi = frame[y1:y2, x1:x2]
-#         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-
-#         # Perform OCR on the entire image
-#         results = reader.readtext(gray)
-
-#         # Extract text from results
-#         text = []
-#         for (bbox, content, prob) in results:
-#             text.append(content)
-
-#         # Join all detected text into a single string
-#         full_text = ' '.join(text)
-
-#         # Process the text to match the desired format
-#         processed_plates = self.process_plate_text(full_text)
-
-#         print("=============")
-#         # print("full_text:", full_text)
-#         print("processed_plates:", processed_plates)
-
-
-#         # return processed_plates
-#         return full_text
-
-#     def process_plate_text(self, text):
-
-#         # Split the text into lines
-#         lines = text.split('\n')
-#         processed_plates = []
-#         for line in lines:
-#             # Remove any non-alphanumeric characters
-#             clean_line = re.sub(r'[^a-zA-Z0-9]', ' ', line)
-#             # Split the line into parts
-#             parts = clean_line.split()
-
-#             if len(parts) >= 3:
-#                 # Process each part according to the rules
-#                 part1 = ''.join(filter(str.isalpha, parts[0]))[
-#                     :2].upper()  # First part: up to 2 letters
-#                 # Middle part: up to 4 digits
-#                 part2 = ''.join(filter(str.isdigit, ''.join(parts[1:-1])))[:4]
-#                 # Last part: up to 2 letters
-#                 part3 = ''.join(filter(str.isalpha, parts[-1]))[:2].upper()
-
-#                 # Ensure part3 is not empty, if it is, try to find letters in previous parts
-#                 if not part3:
-#                     for part in parts[2:-1]:
-#                         part3 = ''.join(filter(str.isalpha, part))[:2].upper()
-#                         if part3:
-#                             break
-
-#                 # Only add the processed plate if all parts are valid
-#                 if part1 and part2 and part3:
-#                     processed_plate = f"{part1} {part2} {part3}"
-#                     processed_plates.append(processed_plate)
-
-#         return '\n'.join(processed_plates)
 import logging as log
-from .constants import DETECTION_TIME
 from collections import defaultdict
 from ultralytics import YOLO
 from easyocr import Reader
@@ -165,10 +10,12 @@ import cv2
 import re
 import threading
 
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 log = logging.getLogger(__name__)
 reader = Reader(['en'])
 
+servo = Servo(pin=18)
 
 class PlateRecognizer:
 
@@ -208,6 +55,8 @@ class PlateRecognizer:
         self.lock = threading.Lock()
         self.state_plates = {}
 
+        self.detected_text_in = ""
+        self.detected_text_out = ""
         self.bbox = [0, 0, 0, 0]
         self.text = ""
 
@@ -236,7 +85,6 @@ class PlateRecognizer:
             success, frame = cap.read()
 
             if success:
-
                 frame_count += 1
                 if frame_count >= 10:
                     end_time = time.time()
@@ -257,17 +105,24 @@ class PlateRecognizer:
 
                 current_time = time.time()
 
+                detected_text = ""
                 for r in results:
                     boxes = r.boxes
                     for box in boxes:
                         self.bbox = box.xyxy[0].tolist()
-                        self.text = self.extract_text(resized_frame, self.bbox)
-                        log.info(f"Detected text: {self.text}")
+                        text = self.extract_text(resized_frame, self.bbox)
+                        log.info(f"{camera_name} Detected text: {text}")
+                        detected_text = text
 
                         if camera_name == 'Camera in':
-                            self.handle_camera_in(self.text, current_time)
+                            self.handle_camera_in(text, current_time)
                         else:
-                            self.handle_camera_out(self.text, current_time)
+                            self.handle_camera_out(text, current_time)
+
+                if camera_name == 'Camera in':
+                    self.detected_text_in = detected_text
+                elif camera_name == 'Camera out':
+                    self.detected_text_out = detected_text
 
                 try:
                     annotated_frame = results[0].plot()
@@ -275,13 +130,15 @@ class PlateRecognizer:
                         annotated_frame = cv2.cvtColor(
                             annotated_frame, cv2.COLOR_RGB2BGR)
 
+                    # tampilkan FPS pada frame
                     cv2.putText(
                         annotated_frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-                    # # Draw text below the bounding box
-                    # x1, y1, x2, y2 = map(int, self.bbox)
-                    # cv2.putText(annotated_frame, self.text, (x1, y2 + 20),
-                    #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                    # Hanya gambar teks jika terdeteksi pada kamera yang sesuai
+                    if detected_text:
+                        x1, y1, x2, y2 = map(int, self.bbox)
+                        cv2.putText(annotated_frame, detected_text, (x1, y2 + 20),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
                     cv2.imshow(
                         f"YOLOv8 Inference {camera_name}", annotated_frame)
@@ -305,15 +162,19 @@ class PlateRecognizer:
             if text not in self.data_plates and text != "":
                 self.data_plates[text] = current_time
                 self.state_plates[text] = True
-                log.info(f"Plate '{text}' ditambahkan ke data_plates.")
+                servo.rotate(90)
+                print(f"Plat '{text}' masuk pada {time.ctime(current_time)}\n")
 
     def handle_camera_out(self, text, current_time):
         with self.lock:
             if text in self.data_plates:
                 time_in = self.data_plates[text]
                 time_out = current_time
-                log.info(
-                    f"Plate '{text}' masuk pada {time.ctime(time_in)} dan keluar pada {time.ctime(time_out)}.")
+                duration = time_out - time_in
+                servo.rotate(90)
+                print(
+                    f"Kendaraan Plat '{text}' \nmasuk: {time.ctime(time_in)}\nkeluar: {time.ctime(time_out)}.\ndurasi: {round(duration)} detik \n")
+
                 del self.data_plates[text]
                 del self.state_plates[text]
 
