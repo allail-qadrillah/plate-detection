@@ -9,3 +9,6 @@ if __name__ == "__main__":
 
     # Run the PlateRecognizer
     plate_recognizer.run()
+
+
+# https: //www.instructables.com/Controlling-Servo-Motor-Sg90-With-Raspberry-Pi-4/
